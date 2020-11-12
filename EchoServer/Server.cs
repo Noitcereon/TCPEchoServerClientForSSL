@@ -1,7 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace EchoServer
 {
@@ -20,11 +24,27 @@ namespace EchoServer
             serverSocket.Start();
             Console.WriteLine("Server started");
 
-            using (TcpClient connectionSocket = serverSocket.AcceptTcpClient())
-            using (Stream ns = connectionSocket.GetStream())
-            using (StreamReader sr = new StreamReader(ns))
-            using (StreamWriter sw = new StreamWriter(ns))
+            Task.Run(() => HandleClient(serverSocket.AcceptTcpClient()));
+        }
+
+        private void HandleClient(TcpClient connectionSocket)
+        {
+            string serverCertificateFile = @"C:\Certificates\ServerSSL.cer";
+            SslProtocols protocol = SslProtocols.Tls12;
+            
+
+            using (SslStream sslStream = new SslStream(connectionSocket.GetStream(), 
+                false))
+            using (StreamReader sr = new StreamReader(sslStream))
+            using (StreamWriter sw = new StreamWriter(sslStream))
             {
+                X509Certificate serverCertificate = 
+                    new X509Certificate(serverCertificateFile, "why");
+                sslStream.AuthenticateAsServer(serverCertificate,
+                                        false,
+                                        protocol,
+                                        true);
+                serverCertificate.Dispose();
                 Console.WriteLine("Server activated");
                 sw.AutoFlush = true; // enable automatic flushing
 

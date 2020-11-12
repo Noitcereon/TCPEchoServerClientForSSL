@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Xml.Schema;
 
@@ -19,20 +20,24 @@ namespace EchoClient
         {
 
             using (TcpClient connectionSocket = new TcpClient(IPAddress.Loopback.ToString(), PORT))
-            using (Stream ns = connectionSocket.GetStream())
-            using (StreamReader sr = new StreamReader(ns))
-            using (StreamWriter sw = new StreamWriter(ns))
+            using (SslStream sslStream = new SslStream(connectionSocket.GetStream(), false))
             {
-                Console.WriteLine("Client have connected");
-                sw.AutoFlush = true; // enable automatic flushing
+                sslStream.AuthenticateAsClient("FakeServerName");
 
-                // three different clients - run only one of them
+                using (StreamReader sr = new StreamReader(sslStream))
+                using (StreamWriter sw = new StreamWriter(sslStream))
+                {
+                    Console.WriteLine("Client have connected");
+                    sw.AutoFlush = true; // enable automatic flushing
 
-                Client1(sr, sw);        // read 1 line from console and send to server
-                //Client2(sr, sw);      // read 5 lines and send to server
-                //Client3(sr, sw);      // send 100 messages to server
+                    // three different clients - run only one of them
 
-                Console.WriteLine("Client finished");
+                    Client1(sr, sw);        // read 1 line from console and send to server
+                    //Client2(sr, sw);      // read 5 lines and send to server
+                    //Client3(sr, sw);      // send 100 messages to server
+
+                    Console.WriteLine("Client finished");
+                }
             }
         }
 
